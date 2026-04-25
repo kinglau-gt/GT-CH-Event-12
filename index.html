@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歷史大事配對 - King Sir G12知識長征</title>
+    <style>
+        :root { --primary: #3498db; --success: #2ecc71; --error: #e74c3c; --gold: #f1c40f; --dark: #2c3e50; --orange: #e67e22; --purple: #9b59b6; }
+        body { font-family: 'Microsoft JhengHei', sans-serif; background-color: #f0f3f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        #game-container { background: white; padding: 2rem; border-radius: 30px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); width: 95%; max-width: 850px; text-align: center; }
+        
+        /* King Sir Q版頭像 */
+        .king-sir-avatar { width: 100px; height: 100px; background: #ffeaa7; border-radius: 50%; margin: 0 auto 15px; position: relative; border: 4px solid #fab1a0; }
+        .crown { position: absolute; top: -30px; left: 50%; transform: translateX(-50%); font-size: 45px; animation: float 2s infinite alternate; }
+        .glasses { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); width: 60px; height: 20px; border-bottom: 3px solid #2d3436; }
+        .smile { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); width: 30px; height: 15px; border-bottom: 3px solid #2d3436; border-radius: 50%; }
+        @keyframes float { from { transform: translateX(-50%) translateY(0); } to { transform: translateX(-50%) translateY(-10px); } }
+
+        .stats-bar { display: flex; justify-content: space-between; margin-bottom: 1rem; background: #f8f9fa; padding: 12px; border-radius: 15px; font-weight: bold; font-size: 0.95rem; border: 1px solid #eee; }
+        .total-score-display { color: var(--orange); font-size: 1.1rem; border-left: 2px solid #ddd; padding-left: 10px; }
+        .timer-box { font-size: 1.2rem; font-weight: bold; color: var(--orange); margin: 10px 0; background: #fff5e6; display: inline-block; padding: 5px 20px; border-radius: 20px; }
+        
+        /* 大事顯示區域 */
+        #event-display { font-size: 2.2rem; font-weight: 900; color: var(--dark); margin: 1rem 0; min-height: 6rem; display: flex; align-items: center; justify-content: center; line-height: 1.3; padding: 0 20px; }
+        
+        .options-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        @media (max-width: 600px) { .options-grid { grid-template-columns: repeat(2, 1fr); } }
+        
+        button { padding: 15px 5px; font-size: 1.05rem; border: 2px solid #dfe6e9; border-radius: 15px; background: white; cursor: pointer; transition: 0.2s; font-weight: bold; }
+        button:hover:not(:disabled) { border-color: var(--primary); background: #f0f7ff; transform: translateY(-2px); }
+        button.correct { background: var(--success) !important; color: white; border-color: #27ae60; }
+        button.wrong { background: var(--error) !important; color: white; border-color: #c0392b; }
+        
+        .hidden { display: none; }
+        .btn-main { background: var(--primary); color: white; border: none; padding: 18px; font-size: 1.2rem; border-radius: 50px; cursor: pointer; width: 100%; margin-top: 20px; font-weight: bold; transition: 0.3s; }
+        .btn-main:hover { filter: brightness(1.1); transform: scale(1.02); }
+        
+        .stars-row { margin: 20px 0; display: flex; justify-content: center; gap: 10px; }
+        .big-star { font-size: 3.5rem; color: var(--gold); animation: starPop 0.8s infinite alternate; text-shadow: 0 0 15px rgba(241, 196, 15, 0.5); }
+        @keyframes starPop { from { transform: scale(0.9); } to { transform: scale(1.2); } }
+        .score-box { background: #fff9e6; padding: 20px; border-radius: 20px; border: 2px dashed #f1c40f; margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="start-screen">
+        <div class="king-sir-avatar"><div class="crown">👑</div><div class="glasses"></div><div class="smile"></div></div>
+        <h1>歷史大事配對：25關馬拉松</h1>
+        <p>包含古代至現代歷史大事<br>每關 20 題，答對 15 題可晉級至下一關。<br>速度愈快，King Sir 給的獎勵分數愈高！</p>
+        <div style="font-size: 0.95rem; color: #444; margin: 10px 0; text-align: left; display: inline-block; background: #eee; padding: 15px; border-radius: 10px;">
+            🚀 45秒內完成：+20分<br>
+            ⏱️ 55秒內完成：+10分<br>
+            🐢 70秒內完成：+5分
+        </div>
+        <button class="btn-main" onclick="startGame()">開始挑戰</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <div class="stats-bar">
+            <div>第 <span id="lvl">1</span>/25 關</div>
+            <div class="total-score-display">累積總分: <span id="total-pts-live">0</span></div>
+        </div>
+        <p style="color: var(--purple); font-weight: bold;">請選擇此歷史大事/制度主要發生於哪個朝代/時期？</p>
+        <div class="timer-box">⏳ 耗時: <span id="timer">0</span>s</div>
+        <div id="event-display">載入中...</div>
+        <div class="options-grid" id="options-container"></div>
+        <div id="feedback" style="margin-top:15px; font-weight:bold; height:1.5rem; font-size: 1.2rem;"></div>
+        <p style="color: #999; font-size: 0.8rem; margin-top:10px;">本關進度: <span id="prog">1</span>/20 (已答對: <span id="current-correct">0</span>)</p>
+    </div>
+
+    <div id="result-screen" class="hidden">
+        <h2 id="result-title"></h2>
+        <div id="bonus-info" style="color: var(--orange); font-weight: bold; font-size: 1.2rem; margin: 10px 0;"></div>
+        <p id="result-desc"></p>
+        <button id="next-btn" class="btn-main" onclick="startLevel()" style="background:var(--success);">進入下一關</button>
+        <button onclick="location.reload()" style="background:none; border:none; color:#999; margin-top:15px; cursor:pointer;">放棄挑戰</button>
+    </div>
+
+    <div id="win-screen" class="hidden">
+        <div class="king-sir-avatar" style="width:120px; height:120px; border-color:var(--gold);">
+            <div class="crown" style="font-size:55px; top:-40px;">👑</div>
+            <div class="glasses" style="top:50px;"></div><div class="smile" style="bottom:20px; width:40px;"></div>
+        </div>
+        <h1 style="color: var(--orange);">🎉 歷史大師！完美通關</h1>
+        <div class="stars-row">
+            <span class="big-star">⭐</span><span class="big-star">⭐</span><span class="big-star">⭐</span><span class="big-star">⭐</span><span class="big-star">⭐</span>
+        </div>
+        <div class="score-box">
+            <h3>📊 最終戰績統計</h3>
+            <p>大事配對基礎分：<span id="final-base">0</span></p>
+            <p>King Sir 速度獎勵：<span id="final-bonus">0</span></p>
+            <hr>
+            <p style="font-size: 1.8rem; font-weight: bold; color: var(--dark);">總得分：<span id="final-total">0</span></p>
+        </div>
+        <button class="btn-main" onclick="location.reload()" style="background: var(--orange);">重新開始長征</button>
+    </div>
+</div>
+
+<script>
+
+const rawData = {
+    "西周": ["三監之亂", "周公東征", "牧野之戰", "烽火戲諸侯"],
+    "春秋戰國": ["三家分晉", "大夫「八佾舞」", "大司寇", "子西沮封", "中都宰", "子產鑄刑鼎", "王子帶之亂", "平王東遷", "田氏篡齊", "因膰去魯", "夾谷之會", "宋人伐木", "委吏", "長平之戰", "城濮之戰", "乘田", "廢世卿世祿制",  "晏嬰沮封", "鬥雞之變",  "商鞅變法", "問鼎中原", "連橫", "合縱", "尊王攘夷", "葵丘會盟", "蒲匡之圍", "幣迎歸魯",  "鄭莊公偷割王畿麥子", "隳三都", "軍功爵制", "荊軻刺秦王", "陳蔡絕糧"],
+    "秦漢": ["《史記》", "左官律", "《漢書》", "附益法", "大澤鄉起義", "文景之治", "北伐匈奴", "白馬之誓", "白登之圍", "司隸校尉", "六條問事", "光武中興", "安漢公", "西邸賣官", "西域都護府", "吳楚七國之亂", "巫蠱之禍", "改刺史為州牧", "大司馬", "三公九卿", "七科謫", "李陵之禍", "明章之治", "阿房宮", "明光宮", "建章宮", "景帝削藩", "昭宣中興", "毒殺平帝", "郡國並行制", "假皇帝", "推恩令", "曹操挾帝", "累世經學", "質帝被弒", "焚書坑儒", "黃巾之亂", "黃門北寺獄", "新經濟政策", "平準法", "算緡告緡", "靈渠", "鴻溝", "五尺道", "直道", "察舉制", "非功不封侯", "河西四郡", "以吏為師", "輪臺詔", "鄭眾殺竇憲", "獨尊儒術", "黨錮之禍", "鹽鐵會議"],
+    "魏晉南北朝": ["《徙戎論》", "九流常選", "王與馬，共天下", "皇宗學", "九品中正制", "八王之亂", "三長制", "元恂奔代", "六鎮之亂", "太武帝統一北方", "王敦之亂", "王源被剔出士族", "從平城遷都洛陽", "平城政變", "永嘉之亂", "河陰之禍", "侯景之亂", "孫恩盧循之亂", "桓玄之亂", "桓溫北伐", "庾亮北伐", "荊揚之爭", "僑置州郡", "土斷", "典簽", "占田制", "蔭戶制", "分定姓族", "禁歸葬", "雁臣", "淝水之戰", "劉裕篡位"],
+    "隋唐": ["《五經正義》", "《五經定本》", "《氏族志》", "《貞觀政要》", "天可汗", "聖人莫緣可汗", "三省六部制", "大中暫治", "大索貌閱", "不憐百姓而惜倉庫", "中書門下", "元和中興", "內外官吏互調之制", "突厥分裂", "分段運輸法", "先天政變", "牛李黨爭", "王仙芝之亂", "代宗奔蜀", "廣州首設市舶司", "弘文館", "永貞內禪", "永徽之治", "玄武門之變", "甘露之變", "吏部試", "全年死刑犯僅29人", "宇文融清查戶籍", "安史之亂", "朱溫盡殺宦官", "均田制崩潰", "李承乾謀反", "節度使", "兩稅法", "姑息政策", "三征高麗", "怛羅斯之戰", "玉華宮", "仁壽宮", "飛山宮", "武周之治", "德宗削藩", "宦官掌禁軍成為定制", "政事堂", "貞觀之治", "韋后亂政", "唐隆政變", "借兵回紇", "涇原兵變", "留後", "死守睢陽", "開元之治", "開皇之治", "黃巢之亂", "採訪使", "監察御史", "黜陟大使", "斜封官", "淘汰僧尼", "華清宮", "翠微宮", "集賢院", "劍南道民變", "廣州阿拉伯商人被殺", "廣通渠", "輸籍法", "營建大興城", "絹馬貿易", "內樞密使", "龐勛之亂", "靈武即位", "彍騎", "租庸調制", "斗米不過三、四錢", "每餐不過一肉", "馬嵬之變"],
+    "宋元": ["《三經新義》", "〈本朝百年無事札子〉", "《字說》", "〈流民圖〉", "《淮南雜說》", "《通鑑考異》", "《資治通鑑》", "「不殺言官」", "二府三司", "元祐更化", "元祐黨人碑", "太學三舍法", "方田均稅法", "四監司", "提舉常平使", "轉運使", "提點刑獄使", "經略安撫使","市易法", "民族歧視政策", "行中書省", "行御史台", "免役法", "更戍法", "制置三司條例司", "官、職、差遣", "杯酒釋兵權", "青苗法", "保甲法", "軍器監", "紹述", "通判", "陳橋兵變", "肅政廉訪司", "圓署會議制", "新舊黨爭", "歲幣", "經局", "置將法", "詭名子戶", "詭名挾田", "農田水利法", "遊牧分封制", "達魯花赤", "熙河之役", "熙寧變法", "廢除明經諸科", "慶曆變法", "澶淵之盟", "關陝之變"],
+    "明朝": ["五軍都督府", "四輔官", "《大誥》", "「內臣不得干預政事」", "太祖重行封建", "內閣", "六科給事中", "通政司", "批紅", "李自成民變", "張獻忠民變", "承宣布政使司", "東林黨爭", "東廠", "空印案", "成祖削藩", "胡惟庸案", "徐一夔案", "票擬", "郭桓貪污案", "都察院", "誅十族", "寧王之亂", "靖難之變", "廢相", "錦衣衛", "藍玉案", "提刑接察使", "都指揮使", "廷杖"],
+    "清初": ["三藩之亂", "《古今圖書集成》", "《四庫全書》", "《康熙字典》","台灣鄭氏敗亡","火耗歸公", "奏事處", "永不加賦", "江南奏銷案", "呂留良、曾靜獄", "廷寄", "改土歸流", "南書房", "厚葬思宗", "查嗣庭典試獄", "丁酉科場案", "胡藻中詩獄", "哭廟案", "徐述夔詩獄", "莊廷鑨《明史》獄", "博學鴻詞科", "揚州十日", "嘉定三屠", "滿漢複職制", "遷界", "養廉銀", "薙髮令", "議政王大臣會議", "戴名世《南山集》獄", "攤丁入畝", "軍機處", "密摺制度"],
+"晚清": ["〈中國之睡與醒〉", "〈中國先睡後醒論〉", "〈明定國是詔〉", "〈勸學篇書後〉", "《上李鴻章書》", "《中俄密約》", "《五口通商章程》", "《天津條約》", "《天演論》", "《北京條約》", "《辛丑條約》", "《防範外夷規條》", "《虎門條約》", "《保存宋王臺條例》", "《南京條約》", "《穿鼻草約》", "《革命軍》", "《海國圖志》", "《馬關條約》", "《望廈條約》", "《猛回頭》", "《黃埔條約》", "《新政真詮》", "《璦琿條約》", "《勸學篇》", "《警世鐘》", "「量中華之物力，結與國之歡心」", "一口通商", "八國聯軍之役", "十二年修約問題", "三國干涉還遼", "籌建川漢鐵路", "公行", "公車上書", "太平天國", "火燒圓明園", "北洋艦隊", "四川保路風潮", "戊戌政變", "戊戌維新", "甲午戰爭", "列強劃分勢力範圍", "同文館", "廣方言館", "同盟會", "安慶起義", "江南製造總局", "西林教案", "亞羅號事件", "京師大學堂", "策動兩廣獨立", "官督商辦", "東南互保", "東華醫院特別委員會", "林維喜事件", "武昌起義", "虎門銷煙", "門戶開放宣言", "洋務運動", "皇族內閣", "英法聯軍之役", "香港西醫書院", "倫敦蒙難", "唐胥鐵路", "容閎留美計劃", "國會請願運動", "晚清新政", "勞律卑來華", "亞美士德來華", "馬戛爾尼來華", "換約問題", "湖北軍政府", "開平礦務局", "開懋勤殿", "雅麗氏紀念醫院", "黃花崗起義", "籌建粵漢鐵路", "義和團事件", "義律任駐華商務總監", "預備立憲", "福州船政學堂", "廢八股文", "廣州入城問題", "廣州起義", "輪船招商局", "鴉片戰爭", "興中會", "諮議局", "頤和園", "總理各國事務衙門", "蘭州織呢局", "鐵路國有政策"],
+    "北洋政府": ["《二十一條》", "《田中奏摺》", "《孫文越飛宣言》", "二次革命", "十月革命", "山東換文", "中山艦事件", "南昌起事", "中共廣州起事", "秋收起事", "中華民國約法", "中華革命黨", "五四運動", "巴黎和會", "北京兵變", "四一二事件", "西山會議", "宋案", "府院之爭", "東北易幟", "直皖戰爭", "南京事件", "洪憲帝制", "皇姑屯事件", "迫選大總統", "香港大學成立", "馬林來華", "啟德機場落成", "國民黨北伐", "國民黨東征", "張勳復辟", "第一次直奉戰爭", "第二次直奉戰爭", "善後大借款", "華盛頓會議", "黃埔軍校成立", "新文化運動", "寧漢分裂", "寧漢復合", "濟南慘案", "《臨時約法》", "籌安會", "護法之役", "護國之役"],
+    "南京國民政府": [ "《何梅協定》", "《哈爾濱協定》", "《淞滬停戰協定》", "《塘沽停戰協定》", "一二八事變", "七七事變", "九一八事變", "二萬五千里長征", "入緬戰爭", "八一三之役", "上黨戰役", "大陸打通作戰", "大蕭條", "中日廣州戰役", "中原大戰", "政治協商會議改組政府案", "中途島海戰", "中華蘇維埃共和國", "太平洋戰爭", "日本退出國際聯盟", "北平和談", "台兒莊大捷", "平型關大捷", "平津戰役", "共赴國難宣言", "百團大戰", "西安事變", "沙家店戰役", "制憲國民大會", "武漢會戰", "河北事件", "波茨坦公告", "花園口決堤", "金圓券", "南京大屠殺", "封鎖滇緬公路", "珍珠港事件", "美國投原子彈", "美國攻佔關島", "美國對日禁運石油", "重慶和談", "飛虎隊成立", "偽國民政府", "偽滿洲國", "國民黨第六屆二中全會", "國共停戰協定", "淮海戰役", "圍攻蘇區", "渡江戰役", "皖南事變", "開羅宣言", "熱河事變", "魯西南戰役", "冀東防共自治政府", "遵義會議", "遼瀋戰役", "雙十協定", "廬山講話", "《蘇日中立友好條約》", "蘇聯對日本宣戰", "《中蘇友好同盟條約》"],
+    "中華人民共和國": [ "《八一七公報》", "《中英聯合聲明》", "《中葡聯合聲明》", "《中日聯合聲明》", "《毛語錄》", "《告台灣同胞書》", "《炮打司令部》", "《橫掃一切牛鬼蛇神》", "「三自一包」", "「三個世界」理論", "「工業學大慶」", "「四項基本原則」", "「白貓黑貓論」", "「兩個凡是」", "「革命大串連」", "「復課鬧革命」", "「農業學大寨」", "一五計劃", "一化三改", "一月風暴", "九一三事件", "九二共識", "九評蘇共", "二月逆流", "二月提綱", "八六學潮", "三反運動", "三年大饑荒", "三和路線", "三信危機", "三面紅旗", "三砸一燒", "上山下鄉", "土地改革", "中央文化革命小組", "「九大」", "中共加入聯合國", "《共同防禦條約》", "《中蘇友好同盟互助條約》", "五一六通知", "五七一工程紀要", "五反運動", "公私合營", "反右傾運動", "反右運動", "反瞞產", "文化革命五人小組", "北京之春", "四人幫被捕", "四五天安門事件", "尼克遜訪華", "田中角榮訪華", "乒乓外交", "全民大煉鋼", "全國山河一片紅", "利潤留成", "批林批孔", "反擊右傾翻案風", "抗美援朝", "抗美援越", "姓「資」姓「社」爭論", "官倒", "林彪事件", "思想改造運動", "金門炮戰", "洋躍進", "珍寶島事件", "紅衛兵", "革命樣板戲", "家庭聯產承包責任制", "恐右病", "海瑞罷官", "基辛格訪華", "清華大學百日大武鬥", "台海危機", "宏觀調控", "第十一屆三中全會", "統購包銷", "經濟特區", "萬隆會議", "葉九條", "鳴放運動", "劉青山、張子善貪污案", "廠長責任制", "鄧小平南巡", "彭羅陸楊反黨集團", "評《水滸》運動", "鎮壓反革命運動", "闖價格關", "廬山會議"]
+};
+
+let gamePool = [];
+const dynasties = Object.keys(rawData);
+for (let d in rawData) { rawData[d].forEach(name => gamePool.push({ name, dynasty: d })); }
+
+let currentLevel = 0;
+let currentCorrect = 0;
+let currentIndex = 0;
+let levelPool = [];
+let totalAnsweredCount = 0;
+
+let timerInterval;
+let secondsElapsed = 0;
+let totalBasePoints = 0;
+let totalBonusPoints = 0;
+
+function shuffle(array) { array.sort(() => Math.random() - 0.5); }
+
+function startGame() {
+    totalBasePoints = 0;
+    totalBonusPoints = 0;
+    totalAnsweredCount = 0;
+    currentLevel = 0;
+    shuffle(gamePool);
+    document.getElementById('start-screen').classList.add('hidden');
+    startLevel();
+}
+
+function startLevel() {
+    currentLevel++;
+    currentCorrect = 0;
+    currentIndex = 0;
+    secondsElapsed = 0;
+    
+    // 如果題庫不夠20題，重新洗牌
+    if (totalAnsweredCount + 20 > gamePool.length) { shuffle(gamePool); totalAnsweredCount = 0; }
+    levelPool = gamePool.slice(totalAnsweredCount, totalAnsweredCount + 20);
+    
+    document.getElementById('result-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    
+    clearInterval(timerInterval);
+    document.getElementById('timer').innerText = 0;
+    timerInterval = setInterval(() => {
+        secondsElapsed++;
+        document.getElementById('timer').innerText = secondsElapsed;
+    }, 1000);
+
+    updateDisplay();
+}
+
+function updateDisplay() {
+    document.getElementById('lvl').innerText = currentLevel;
+    document.getElementById('prog').innerText = currentIndex + 1;
+    document.getElementById('current-correct').innerText = currentCorrect;
+    document.getElementById('total-pts-live').innerText = totalBasePoints + totalBonusPoints;
+    document.getElementById('event-display').innerText = levelPool[currentIndex].name;
+    
+    const container = document.getElementById('options-container');
+    container.innerHTML = '';
+    dynasties.forEach(d => {
+        const btn = document.createElement('button');
+        btn.innerText = d;
+        btn.onclick = () => handleAnswer(d, btn);
+        container.appendChild(btn);
+    });
+    document.getElementById('feedback').innerText = '';
+}
+
+function handleAnswer(choice, btn) {
+    const correct = levelPool[currentIndex].dynasty;
+    const btns = document.querySelectorAll('.options-grid button');
+    btns.forEach(b => b.disabled = true);
+
+    if (choice === correct) {
+        currentCorrect++;
+        totalBasePoints += 10;
+        btn.classList.add('correct');
+        document.getElementById('feedback').innerText = '正確！✨';
+        document.getElementById('feedback').style.color = 'var(--success)';
+    } else {
+        btn.classList.add('wrong');
+        document.getElementById('feedback').innerText = '答案：' + correct;
+        document.getElementById('feedback').style.color = 'var(--error)';
+        btns.forEach(b => { if(b.innerText === correct) b.classList.add('correct'); });
+    }
+
+    document.getElementById('total-pts-live').innerText = totalBasePoints + totalBonusPoints;
+
+    setTimeout(() => {
+        currentIndex++;
+        if (currentIndex < 20) {
+            updateDisplay();
+        } else {
+            clearInterval(timerInterval);
+            totalAnsweredCount += 20;
+            showResults();
+        }
+    }, 800);
+}
+
+function showResults() {
+    const passed = currentCorrect >= 15;
+    let bonus = 0;
+    
+    if (passed) {
+        if (secondsElapsed <= 45) bonus = 20;
+        else if (secondsElapsed <= 55) bonus = 10;
+        else if (secondsElapsed <= 70) bonus = 5;
+        totalBonusPoints += bonus;
+    } else {
+        // 不及格時扣除該關基礎分，模擬失敗
+        totalBasePoints -= (currentCorrect * 10);
+    }
+
+    document.getElementById('game-screen').classList.add('hidden');
+
+    if (currentLevel === 25 && passed) {
+        document.getElementById('win-screen').classList.remove('hidden');
+        document.getElementById('final-base').innerText = totalBasePoints;
+        document.getElementById('final-bonus').innerText = totalBonusPoints;
+        document.getElementById('final-total').innerText = totalBasePoints + totalBonusPoints;
+        return;
+    }
+
+    document.getElementById('result-screen').classList.remove('hidden');
+    document.getElementById('result-title').innerText = passed ? `第 ${currentLevel} 關通過！` : '再接再厲！';
+    
+    if (passed) {
+        document.getElementById('bonus-info').innerText = bonus > 0 ? `🚀 挑戰成功！速度獎勵：+${bonus} 分` : '⏳ 挑戰成功！無額外速度獎勵。';
+        document.getElementById('result-desc').innerText = `本關答對 ${currentCorrect} 題，耗時 ${secondsElapsed} 秒。`;
+        document.getElementById('next-btn').style.display = 'block';
+        document.getElementById('next-btn').innerText = `進入第 ${currentLevel + 1} 關`;
+    } else {
+        document.getElementById('bonus-info').innerText = '';
+        document.getElementById('result-desc').innerText = `本關僅答對 ${currentCorrect} 題，未達 15 題及格標準，挑戰結束。`;
+        document.getElementById('next-btn').style.display = 'none';
+    }
+}
+</script>
+</body>
+</html>
